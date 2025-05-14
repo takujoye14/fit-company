@@ -1,7 +1,7 @@
-from ..models_dto import UserSchema, UserResponseSchema
+from ..models_dto import UserSchema, UserResponseSchema, UserProfileSchema, UserProfileResponseSchema
 from ..models_db import UserModel
 from ..database import db_session
-from typing import List
+from typing import List, Optional
 import random
 import string
 import hashlib
@@ -71,5 +71,61 @@ def get_all_users() -> List[UserSchema]:
             )
             for db_user in db_users
         ]
+    finally:
+        db.close()
+
+def update_user_profile(email: str, profile: UserProfileSchema) -> Optional[UserProfileResponseSchema]:
+    """
+    Update user profile with weight, height, and fitness goal
+    """
+    db = db_session()
+    try:
+        # Find the user
+        user = db.query(UserModel).filter(UserModel.email == email).first()
+        if not user:
+            return None
+            
+        # Update the user's profile
+        user.weight = profile.weight
+        user.height = profile.height
+        user.fitness_goal = profile.fitness_goal
+        user.onboarded = "true"
+        
+        db.commit()
+        db.refresh(user)
+        
+        # Return the updated user profile
+        return UserProfileResponseSchema(
+            email=user.email,
+            name=user.name,
+            weight=user.weight,
+            height=user.height,
+            fitness_goal=user.fitness_goal,
+            onboarded=user.onboarded
+        )
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+def get_user_profile(email: str) -> Optional[UserProfileResponseSchema]:
+    """
+    Get user profile information
+    """
+    db = db_session()
+    try:
+        user = db.query(UserModel).filter(UserModel.email == email).first()
+        if not user:
+            return None
+            
+        return UserProfileResponseSchema(
+            email=user.email,
+            name=user.name,
+            weight=user.weight,
+            height=user.height,
+            fitness_goal=user.fitness_goal,
+            onboarded=user.onboarded
+        )
     finally:
         db.close()

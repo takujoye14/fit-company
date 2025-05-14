@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from pydantic import ValidationError
-from .models_dto import UserSchema, UserResponseSchema, LoginSchema, TokenSchema
+from .models_dto import UserSchema, UserResponseSchema, LoginSchema, TokenSchema, UserProfileSchema, UserProfileResponseSchema
 from .services.user_service import create_user as create_user_service
 from .services.user_service import get_all_users as get_all_users_service
-from .services.auth_service import authenticate_user, create_access_token, admin_required
+from .services.user_service import update_user_profile, get_user_profile
+from .services.auth_service import authenticate_user, create_access_token, admin_required, jwt_required
 from .database import init_db, db_session
 from .models_db import UserModel
 import datetime
@@ -69,6 +70,46 @@ def create_bootstrap_admin():
     except Exception as e:
         return jsonify({"error": "Error creating admin", "details": str(e)}), 500
 
+@app.route("/profile/onboarding", methods=["POST"])
+@jwt_required
+def onboard_user():
+    try:
+        # Get user email from the JWT token (set by the jwt_required decorator)
+        user_email = g.user_email
+        
+        # Parse and validate the profile data
+        profile_data = request.get_json()
+        profile = UserProfileSchema.model_validate(profile_data)
+        
+        # Update the user's profile
+        updated_profile = update_user_profile(user_email, profile)
+        if not updated_profile:
+            return jsonify({"error": "User not found"}), 404
+            
+        return jsonify(updated_profile.model_dump()), 200
+        
+    except ValidationError as e:
+        return jsonify({"error": "Invalid profile data", "details": e.errors()}), 400
+    except Exception as e:
+        return jsonify({"error": "Error updating profile", "details": str(e)}), 500
+
+@app.route("/profile", methods=["GET"])
+@jwt_required
+def get_profile():
+    try:
+        # Get user email from the JWT token
+        user_email = g.user_email
+        
+        # Get the user's profile
+        profile = get_user_profile(user_email)
+        if not profile:
+            return jsonify({"error": "User not found"}), 404
+            
+        return jsonify(profile.model_dump()), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Error retrieving profile", "details": str(e)}), 500
+
 @app.route("/oauth/token", methods=["POST"])
 def login():
     try:
@@ -108,7 +149,11 @@ def login():
             token_type="bearer"
         )
         
-        return jsonify(token.model_dump()), 200
+        # Include onboarding status in response
+        response_data = token.model_dump()
+        response_data["onboarded"] = user.onboarded
+        
+        return jsonify(response_data), 200
         
     except ValidationError as e:
         return jsonify({"error": "Invalid login data", "details": e.errors()}), 400

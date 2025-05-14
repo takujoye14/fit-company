@@ -1,0 +1,23 @@
+meta {
+  name: onboard
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{endpoint}}/profile/onboarding
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{admin-token}}
+}
+
+body:json {
+  {
+    "weight": 60,
+    "height": 165,
+    "fitness_goal": "endurance"
+  }
+}
