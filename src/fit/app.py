@@ -7,6 +7,11 @@ from .services.user_service import update_user_profile, get_user_profile
 from .services.auth_service import authenticate_user, create_access_token, admin_required, jwt_required
 from .database import init_db, db_session
 from .models_db import UserModel
+from .services.fitness_data_init import init_fitness_data
+from .services.fitness_service import (
+    get_all_muscle_groups, get_muscle_group_by_id,
+    get_all_exercises, get_exercise_by_id, get_exercises_by_muscle_group
+)
 import datetime
 import os
 
@@ -160,10 +165,56 @@ def login():
     except Exception as e:
         return jsonify({"error": "Error logging in", "details": str(e)}), 500
 
+@app.route("/fitness/muscle-groups", methods=["GET"])
+def get_muscle_groups():
+    try:
+        muscle_groups = get_all_muscle_groups()
+        return jsonify([mg.model_dump() for mg in muscle_groups]), 200
+    except Exception as e:
+        return jsonify({"error": "Error retrieving muscle groups", "details": str(e)}), 500
+
+@app.route("/fitness/muscle-groups/<int:muscle_group_id>", methods=["GET"])
+def get_muscle_group(muscle_group_id):
+    try:
+        muscle_group = get_muscle_group_by_id(muscle_group_id)
+        if not muscle_group:
+            return jsonify({"error": "Muscle group not found"}), 404
+        return jsonify(muscle_group.model_dump()), 200
+    except Exception as e:
+        return jsonify({"error": "Error retrieving muscle group", "details": str(e)}), 500
+
+@app.route("/fitness/exercises", methods=["GET"])
+def get_exercises():
+    try:
+        muscle_group_id = request.args.get("muscle_group_id")
+        if muscle_group_id:
+            # Get exercises for a specific muscle group
+            exercises = get_exercises_by_muscle_group(int(muscle_group_id))
+        else:
+            # Get all exercises
+            exercises = get_all_exercises()
+        return jsonify([ex.model_dump() for ex in exercises]), 200
+    except Exception as e:
+        return jsonify({"error": "Error retrieving exercises", "details": str(e)}), 500
+
+@app.route("/fitness/exercises/<int:exercise_id>", methods=["GET"])
+def get_exercise(exercise_id):
+    try:
+        exercise = get_exercise_by_id(exercise_id)
+        if not exercise:
+            return jsonify({"error": "Exercise not found"}), 404
+        return jsonify(exercise.model_dump()), 200
+    except Exception as e:
+        return jsonify({"error": "Error retrieving exercise", "details": str(e)}), 500
+
 def run_app():
     """Entry point for the application script"""
     # Initialize the database before starting the app
     init_db()
+    
+    # Initialize fitness data
+    init_fitness_data()
+    
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 if __name__ == "__main__":

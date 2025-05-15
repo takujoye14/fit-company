@@ -21,5 +21,6 @@ def get_db():
 
 def init_db():
     # Import all models here so they are registered with the metadata
+    from .models_db import UserModel, MuscleGroupModel, ExerciseModel
     
     Base.metadata.create_all(bind=engine) 
