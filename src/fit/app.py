@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, g
 from pydantic import ValidationError
-from .models_dto import UserSchema, UserResponseSchema, LoginSchema, TokenSchema, UserProfileSchema, UserProfileResponseSchema
+from .models_dto import UserSchema, UserResponseSchema, LoginSchema, TokenSchema, UserProfileSchema, UserProfileResponseSchema, WodResponseSchema, WodExerciseSchema, MuscleGroupImpact
 from .services.user_service import create_user as create_user_service
 from .services.user_service import get_all_users as get_all_users_service
 from .services.user_service import update_user_profile, get_user_profile
@@ -9,11 +9,12 @@ from .database import init_db, db_session
 from .models_db import UserModel
 from .services.fitness_data_init import init_fitness_data
 from .services.fitness_service import (
-    get_all_muscle_groups, get_muscle_group_by_id,
     get_all_exercises, get_exercise_by_id, get_exercises_by_muscle_group
 )
+from .services.fitness_coach_service import calculate_intensity, request_wod
 import datetime
 import os
+import random
 
 app = Flask(__name__)
 
@@ -165,24 +166,6 @@ def login():
     except Exception as e:
         return jsonify({"error": "Error logging in", "details": str(e)}), 500
 
-@app.route("/fitness/muscle-groups", methods=["GET"])
-def get_muscle_groups():
-    try:
-        muscle_groups = get_all_muscle_groups()
-        return jsonify([mg.model_dump() for mg in muscle_groups]), 200
-    except Exception as e:
-        return jsonify({"error": "Error retrieving muscle groups", "details": str(e)}), 500
-
-@app.route("/fitness/muscle-groups/<int:muscle_group_id>", methods=["GET"])
-def get_muscle_group(muscle_group_id):
-    try:
-        muscle_group = get_muscle_group_by_id(muscle_group_id)
-        if not muscle_group:
-            return jsonify({"error": "Muscle group not found"}), 404
-        return jsonify(muscle_group.model_dump()), 200
-    except Exception as e:
-        return jsonify({"error": "Error retrieving muscle group", "details": str(e)}), 500
-
 @app.route("/fitness/exercises", methods=["GET"])
 def get_exercises():
     try:
@@ -206,6 +189,51 @@ def get_exercise(exercise_id):
         return jsonify(exercise.model_dump()), 200
     except Exception as e:
         return jsonify({"error": "Error retrieving exercise", "details": str(e)}), 500
+
+@app.route("/fitness/wod", methods=["GET"])
+@jwt_required
+def get_wod():
+    try:
+        # Get the workout exercises with their muscle groups
+        exercises_with_muscles = request_wod()
+        
+        # Convert to response schema
+        wod_exercises = []
+        for exercise, muscle_groups in exercises_with_muscles:
+            # Create muscle group impact objects
+            muscle_impacts = [
+                MuscleGroupImpact(
+                    id=mg.id,
+                    name=mg.name,
+                    body_part=mg.body_part,
+                    is_primary=is_primary,
+                    # Higher intensity for primary muscle groups
+                    intensity=calculate_intensity(exercise.difficulty) * (1.2 if is_primary else 0.8)
+                )
+                for mg, is_primary in muscle_groups
+            ]
+            
+            # Create exercise object
+            wod_exercise = WodExerciseSchema(
+                id=exercise.id,
+                name=exercise.name,
+                description=exercise.description,
+                difficulty=exercise.difficulty,
+                muscle_groups=muscle_impacts,
+                suggested_weight=random.uniform(5.0, 50.0),  # Random weight between 5 and 50 kg
+                suggested_reps=random.randint(8, 15)  # Random reps between 8 and 15
+            )
+            wod_exercises.append(wod_exercise)
+        
+        response = WodResponseSchema(
+            exercises=wod_exercises,
+            generated_at=datetime.datetime.now(datetime.UTC).isoformat()
+        )
+        
+        return jsonify(response.model_dump()), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Error generating workout of the day", "details": str(e)}), 500
 
 def run_app():
     """Entry point for the application script"""

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
+from datetime import datetime
 
 # User-related DTOs
 class UserSchema(BaseModel):
@@ -46,9 +47,6 @@ class MuscleGroupBase(BaseModel):
     body_part: str
     description: Optional[str] = None
 
-class MuscleGroupCreate(MuscleGroupBase):
-    pass
-
 class MuscleGroupUpdate(BaseModel):
     name: Optional[str] = None
     body_part: Optional[str] = None
@@ -86,3 +84,23 @@ class MuscleGroupWithPrimary(MuscleGroup):
 class Exercise(ExerciseBase):
     id: int
     muscle_groups: List[MuscleGroupWithPrimary] = []
+
+class MuscleGroupImpact(BaseModel):
+    id: int
+    name: str
+    body_part: str
+    is_primary: bool
+    intensity: float  # Calculated based on exercise difficulty (0.0 to 1.0)
+
+class WodExerciseSchema(BaseModel):
+    id: int
+    name: str
+    description: str
+    difficulty: int
+    muscle_groups: List[MuscleGroupImpact]
+    suggested_weight: float = 0.0  # Default weight suggestion
+    suggested_reps: int = 10  # Default number of reps
+
+class WodResponseSchema(BaseModel):
+    exercises: List[WodExerciseSchema]
+    generated_at: datetime
