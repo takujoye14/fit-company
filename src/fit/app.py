@@ -141,7 +141,7 @@ def login():
             "name": user.name,
             "role": user.role,
             "iss": "fit-api", 
-            "iat": datetime.datetime.utcnow(), 
+            "iat": datetime.datetime.now(datetime.UTC), 
         }
         
         access_token = create_access_token(
