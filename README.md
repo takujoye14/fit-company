@@ -4,6 +4,12 @@ The fit monolith is a blazing fast, cutting edge AI fitness coach
 
 ## Getting Started
 
+Start the database with docker compose
+
+```bash
+docker compose up -d
+```
+
 Run the projet
 
 ```bash
