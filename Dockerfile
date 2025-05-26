@@ -10,4 +10,6 @@ COPY . .
 
 EXPOSE 5001
 
+ENV PYTHONPATH=/app
+
 CMD ["python", "main.py"]
