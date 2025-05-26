@@ -6,7 +6,7 @@ from ..services.fitness_service import (
 )
 from ..services.fitness_coach_service import request_wod, calculate_intensity
 from ..models_dto import WodResponseSchema, WodExerciseSchema, MuscleGroupImpact
-from ..services.auth_service import jwt_required
+from ..services.auth_service import jwt_required, decode_token
 import datetime
 import random
 
@@ -38,8 +38,13 @@ def get_exercise(exercise_id):
 @jwt_required
 def get_wod():
     try:
-        exercises_with_muscles = request_wod()
-        
+        # Extract user email from JWT token
+        auth_header = request.headers.get("Authorization")
+        token = auth_header.split(" ")[1] if auth_header else None
+        user_email = decode_token(token)["sub"] if token else None
+
+        exercises_with_muscles = request_wod(user_email)
+
         wod_exercises = []
         for exercise, muscle_groups in exercises_with_muscles:
             muscle_impacts = [
