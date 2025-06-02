@@ -84,8 +84,7 @@ def update_user_profile(email: str, profile: UserProfileSchema) -> Optional[User
         user = db.query(UserModel).filter(UserModel.email == email).first()
         if not user:
             return None
-            
-        # Update the user's profile
+
         user.weight = profile.weight
         user.height = profile.height
         user.fitness_goal = profile.fitness_goal
