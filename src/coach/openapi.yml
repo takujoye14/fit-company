@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: Coach Service API
+  version: 1.0.0
+  description: API for generating a Workout of the Day (WOD) using exercises provided by the monolith.
+
+paths:
+  /wod:
+    post:
+      summary: Generate a Workout of the Day (WOD)
+      description: Generates a randomized WOD excluding exercises performed yesterday.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_email
+                - exercises
+              properties:
+                user_email:
+                  type: string
+                  example: user@example.com
+                  description: The email of the user requesting the WOD.
+                exercises:
+                  type: array
+                  description: List of exercises to pick from (excluding yesterday's exercises).
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - description
+                      - difficulty
+                    properties:
+                      id:
+                        type: integer
+                        description: The ID of the exercise.
+                      name:
+                        type: string
+                        description: The name of the exercise.
+                      description:
+                        type: string
+                        description: A brief description of the exercise.
+                      difficulty:
+                        type: integer
+                        description: Difficulty level from 1 to 5.
+      responses:
+        '200':
+          description: Successfully generated WOD.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: The ID of the exercise.
+                    name:
+                      type: string
+                      description: The name of the exercise.
+                    description:
+                      type: string
+                      description: A description of the exercise.
+                    difficulty:
+                      type: integer
+                      description: Difficulty level from 1 to 5.
+                    suggested_weight:
+                      type: number
+                      format: float
+                      description: Suggested weight in kilograms.
+                    suggested_reps:
+                      type: integer
+                      description: Suggested number of reps.
+        '400':
+          description: Bad request if required fields are missing.
+        '500':
+          description: Internal server error.
+
+components:
+  schemas: {}
