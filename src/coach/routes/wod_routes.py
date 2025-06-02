@@ -1,7 +1,7 @@
 # src/coach/routes/wod_routes.py
 
 from flask import Blueprint, jsonify, request
-from src.coach.services.wod_service import generate_wod
+from services.wod_service import generate_wod
 
 wod_bp = Blueprint("wod", __name__)
 

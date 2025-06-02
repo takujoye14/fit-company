@@ -1,7 +1,7 @@
 # src/coach/app.py
 
 from flask import Flask
-from src.coach.routes.wod_routes import wod_bp
+from routes.wod_routes import wod_bp
 
 app = Flask(__name__)
 

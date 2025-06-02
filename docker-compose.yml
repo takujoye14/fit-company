@@ -2,7 +2,9 @@ version: "3.7"
 
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5001:5001"
     environment:
@@ -13,9 +15,21 @@ services:
       - DB_PASSWORD=docker
       - JWT_SECRET=supersecretjwt
       - BOOTSTRAP_KEY=bootstrap-secret-key
+      - COACH_SERVICE_URL=http://coach:5002/wod
     depends_on:
       db:
         condition: service_healthy
+      coach:
+        condition: service_started
+    networks:
+      - fit
+
+  coach:
+    build:
+      context: .  # FIXED: point to project root
+      dockerfile: src/coach/Dockerfile.coach  # Point to the coach-specific Dockerfile
+    ports:
+      - "5002:5002"
     networks:
       - fit
 
