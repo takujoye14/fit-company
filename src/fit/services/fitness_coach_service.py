@@ -10,22 +10,37 @@ def calculate_intensity(difficulty: int) -> float:
     return (difficulty - 1) / 4.0
 
 def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
-    # Fetch exercises from coach microservice
+    db = db_session()
     try:
-        response = requests.get(f"{COACH_SERVICE_URL}?user_email={user_email}")
+        # Step 1: Fetch yesterday's exercise IDs
+        yesterday = date.today().toordinal() - 1
+        yesterday_exercises = db.query(ExerciseHistoryModel.exercise_id).filter(
+            ExerciseHistoryModel.user_email == user_email,
+            ExerciseHistoryModel.performed_at == date.fromordinal(yesterday)
+        ).all()
+        excluded_ids = [e.exercise_id for e in yesterday_exercises]
+    finally:
+        db.close()
+
+    # Step 2: Fetch exercises from coach microservice
+    try:
+        response = requests.post(
+            COACH_SERVICE_URL,
+            json={"user_email": user_email, "excluded_ids": excluded_ids}
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         raise Exception(f"Failed to fetch WOD from coach service: {e}")
 
     wod_exercises = response.json()
 
+    # Step 3: Log today's history in the local DB
     db = db_session()
     try:
         today = date.today()
         selected_exercises = []
 
         for ex in wod_exercises:
-            # Log exercise history
             db.add(ExerciseHistoryModel(user_email=user_email, exercise_id=ex["id"], performed_at=today))
             selected_exercises.append(ex["id"])
 
