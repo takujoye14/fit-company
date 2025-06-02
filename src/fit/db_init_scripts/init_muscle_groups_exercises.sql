@@ -3,6 +3,7 @@
 DROP TABLE muscle_groups CASCADE;
 DROP TABLE exercises CASCADE;
 DROP TABLE exercise_muscle_groups CASCADE;
+-- DROP TABLE user_exercise_history CASCADE;
 
 -- Create muscle groups table
 CREATE TABLE IF NOT EXISTS muscle_groups (
@@ -29,6 +30,18 @@ CREATE TABLE IF NOT EXISTS exercise_muscle_groups (
     is_primary BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (exercise_id, muscle_group_id)
 );
+
+-- Create user_exercise_history table
+CREATE TABLE IF NOT EXISTS user_exercise_history (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR NOT NULL REFERENCES users(email),
+    exercise_id INTEGER REFERENCES exercises(id),
+    date DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_user_exercise_history_user_date 
+ON user_exercise_history(user_email, date);
 
 -- Populate muscle groups
 INSERT INTO muscle_groups (name, body_part, description) VALUES

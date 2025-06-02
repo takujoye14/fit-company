@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, g, request, jsonify
 from pydantic import ValidationError
 from ..models_dto import WodExerciseSchema, MuscleGroupImpact, WodResponseSchema
 from ..services.fitness_service import (
@@ -39,8 +39,10 @@ def get_exercise(exercise_id):
 @jwt_required
 def get_wod():
     try:
+        user_email = g.user_email
+
         # Get the workout exercises with their muscle groups
-        exercises_with_muscles = request_wod()
+        exercises_with_muscles = request_wod(user_email)
         
         # Convert to response schema
         wod_exercises = []

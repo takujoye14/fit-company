@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Float, Integer, Boolean, ForeignKey, Table, Text
+from sqlalchemy import Column, String, Float, Integer, Boolean, ForeignKey, Table, Text, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from .database import Base
+import datetime
 
 class UserModel(Base):
     __tablename__ = "users"
@@ -65,4 +66,14 @@ class ExerciseModel(Base):
     )
 
     def __repr__(self):
-        return f"<Exercise(id={self.id}, name='{self.name}', difficulty={self.difficulty})>" 
+        return f"<Exercise(id={self.id}, name='{self.name}', difficulty={self.difficulty})>"
+
+class UserExerciseHistory(Base):
+    __tablename__ = 'user_exercise_history'
+    
+    id = Column(Integer, primary_key=True)
+    user_email = Column(String, ForeignKey('users.email'), nullable=False) 
+    exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=False)
+    date = Column(Date, nullable=False, default=datetime.date.today)
+    
+    exercise = relationship("ExerciseModel") 
