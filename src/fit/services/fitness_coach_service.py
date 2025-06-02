@@ -19,14 +19,26 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
             ExerciseHistoryModel.performed_at == date.fromordinal(yesterday)
         ).all()
         excluded_ids = [e.exercise_id for e in yesterday_exercises]
+
+        # Step 2: Fetch all exercises from the DB and filter out yesterday's
+        all_exercises = db.query(ExerciseModel).all()
+        filtered_exercises = [
+            {
+                "id": ex.id,
+                "name": ex.name,
+                "description": ex.description,
+                "difficulty": ex.difficulty
+            }
+            for ex in all_exercises if ex.id not in excluded_ids
+        ]
     finally:
         db.close()
 
-    # Step 2: Fetch exercises from coach microservice
+    # Step 3: Send filtered exercises to coach microservice
     try:
         response = requests.post(
             COACH_SERVICE_URL,
-            json={"user_email": user_email, "excluded_ids": excluded_ids}
+            json={"user_email": user_email, "exercises": filtered_exercises}
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
@@ -34,7 +46,7 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
 
     wod_exercises = response.json()
 
-    # Step 3: Log today's history in the local DB
+    # Step 4: Log today's history in the local DB
     db = db_session()
     try:
         today = date.today()
