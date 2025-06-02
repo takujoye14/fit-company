@@ -7,6 +7,7 @@ from ..services.user_service import (
     update_user_profile,
     get_user_profile
 )
+from ..services.fitness_service import get_last_workout_exercises
 from ..services.auth_service import admin_required, jwt_required
 from ..models_db import UserModel
 from ..database import db_session
@@ -77,4 +78,17 @@ def get_profile():
         return jsonify(profile.model_dump()), 200
         
     except Exception as e:
-        return jsonify({"error": "Error retrieving profile", "details": str(e)}), 500 
+        return jsonify({"error": "Error retrieving profile", "details": str(e)}), 500
+
+@user_bp.route("/users/<email>/workouts/last", methods=["GET"])
+@admin_required
+def get_user_last_workout(email):
+    try:
+        exercises = get_last_workout_exercises(email)
+        if exercises is None:
+            return jsonify({"error": "No workout history found for user"}), 404
+            
+        return jsonify([exercise.model_dump() for exercise in exercises]), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Error retrieving last workout", "details": str(e)}), 500 

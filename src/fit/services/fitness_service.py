@@ -1,7 +1,7 @@
 from ..database import db_session
-from ..models_db import MuscleGroupModel, ExerciseModel, exercise_muscle_groups
+from ..models_db import MuscleGroupModel, ExerciseModel, exercise_muscle_groups, UserExerciseHistory
 from ..models_dto import MuscleGroup, Exercise, MuscleGroupWithPrimary
-from sqlalchemy import select, join
+from sqlalchemy import select, join, func
 
 def get_all_muscle_groups():
     """
@@ -193,6 +193,50 @@ def get_exercises_by_muscle_group(muscle_group_id: int):
                     "equipment": exercise.equipment,
                     "instructions": exercise.instructions,
                     "muscle_groups": muscle_groups
+                }
+            )
+            
+            result.append(exercise_dto)
+            
+        return result
+    finally:
+        db.close()
+
+def get_last_workout_exercises(user_email: str):
+    """
+    Get the exercises from the user's last workout
+    """
+    db = db_session()
+    try:
+        # Get the most recent workout date for this user
+        last_workout_date = db.query(func.max(UserExerciseHistory.date)).filter(
+            UserExerciseHistory.user_email == user_email
+        ).scalar()
+        
+        if not last_workout_date:
+            return None
+            
+        # Get exercises from the last workout
+        last_workout = db.query(
+            ExerciseModel
+        ).join(
+            UserExerciseHistory,
+            ExerciseModel.id == UserExerciseHistory.exercise_id
+        ).filter(
+            UserExerciseHistory.user_email == user_email,
+            UserExerciseHistory.date == last_workout_date
+        ).all()
+        
+        result = []
+        for exercise in last_workout:
+            
+            exercise_dto = Exercise.model_validate(
+                {
+                    "id": exercise.id,
+                    "name": exercise.name,
+                    "description": exercise.description,
+                    "difficulty": exercise.difficulty,
+                    "instructions": exercise.instructions,
                 }
             )
             

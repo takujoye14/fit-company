@@ -1,0 +1,11 @@
+meta {
+  name: get user last workout
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{endpoint}}/workouts/jane.doe@mail.com/last
+  body: none
+  auth: inherit
+}
