@@ -32,26 +32,3 @@ To scale our application and handle CPU-intensive tasks we moved the **Workout o
 7. We tested all endpoints and made sure the applications are working perfectly.
 
 8. We wrote an OpenAPI specification (openapi.yml) for the coach service’s /wod endpoint.
-
-
-
-4. We changed the request_wod() function in fitness_coach_service to:
-    - Remove the heavy computation logic
-    - Fetch yesterday’s exercise history from the local database.
-    - Send a POST request to the coach microservice (instead of calling the logic internally).
-    - The request body includes the user_email and excluded_ids.
-    - Remove the exercise filtering and sampling because now we handle that in the coach service.
-    - Added logic to:
-        Log today’s exercise history using the local database.
-        Fetch exercise details for today’s selected exercises from the local database.
-        Retrieve muscle groups for each exercise.
-
-3. We updated the /wod endpoint on the coach service (from GET to POST) to accept POST requests with user_email and excluded_ids from the fit application.
-
-4. We updated the wod_service to exlude the exercises that were inlcuded in yesterdays workout (sent through the /wod endpoint body), create a list of 6 exercises and return them in JSON format to the fit api.
-
-5. We updated the fit/services/fitness_coach_service.py to fetch yesterdays exercises ids from the database, send a POST request with them to the coach microservice and to save today's exercise history locally.
-
-6. After testing and confirming everything works correctly with dummy data 
-
-. We wrote an OpenAPI spec for the coach service’s endpoint.
