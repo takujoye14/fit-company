@@ -11,8 +11,7 @@ ENV UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock ./
 
-COPY main.py /app/main.py
-# COPY src/fit/ /app/src/fit
+COPY main_coach.py /app/main_coach.py
 
 RUN uv sync
 
@@ -21,4 +20,4 @@ ENV FLASK_ENV=development
 
 EXPOSE 5000
 
-CMD ["uv", "run", "main.py"] 
+CMD ["uv", "run", "main_coach.py"] 

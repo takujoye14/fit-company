@@ -1,7 +1,9 @@
 version: "3.7"
 services:
   monolith:
-    build: .
+    build:
+      context: .
+      dockerfile: monolith.Dockerfile
     ports:
       - "12101:5000"
     volumes:
@@ -10,6 +12,21 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql://postgres:docker@db:5432/fit-db
+    networks:
+      - fit
+
+  coach:
+    build:
+      context: .
+      dockerfile: coach.Dockerfile
+    ports:
+      - "12102:5000"
+    volumes:
+      - ./src/coach:/app/src/coach
+    links:
+      - db
+    # environment:
+    #   - DATABASE_URL=postgresql://postgres:docker@db:5432/fit-db
     networks:
       - fit
 
