@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from ..models_dto import UserSchema, UserProfileSchema, RegisterWorkoutSchema
+from ..models_dto import UserSchema, UserProfileSchema
 from ..services.user_service import (
     create_user as create_user_service,
     get_all_users as get_all_users_service,
     update_user_profile,
     get_user_profile
 )
-from ..services.workout_service import get_last_workout_exercises, register_workout
-from ..services.auth_service import admin_required, api_key_required, jwt_required
+from ..services.auth_service import admin_required, jwt_required
+from ..services.rabbitmq_service import rabbitmq_service
 import os
 
 user_bp = Blueprint('user', __name__)
@@ -37,6 +37,28 @@ def get_all_users():
     except Exception as e:
         return jsonify({"error": "Error retrieving users", "details": str(e)}), 500
 
+@user_bp.route("/users/generateWods", methods=["POST"])
+@admin_required
+def generate_wods():
+    try:
+        # Get all users
+        users = get_all_users_service()
+        
+        # Queue a WOD generation job for each user
+        for user in users:
+            message = {"email": user.email}
+            rabbitmq_service.publish_message(message)
+        
+        return jsonify({
+            "message": f"Queued WOD generation for {len(users)} users",
+            "queue": "createWodQueue"
+        }), 202
+        
+    except Exception as e:
+        return jsonify({
+            "error": "Error queueing WOD generation",
+            "details": str(e)
+        }), 500
 
 @user_bp.route("/profile/onboarding", methods=["POST"])
 @jwt_required

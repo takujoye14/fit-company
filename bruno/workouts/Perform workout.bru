@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{endpoint}}/users/jane.doe@mail.com/workouts/performed
+  url: {{endpoint}}/workouts/register
   body: json
   auth: inherit
 }
@@ -17,6 +17,6 @@ headers {
 body:json {
   {
     "email": "jane.doe@mail.com",
-    "exercises": [1,2,3,4,5,6,7,8,9,10]
+    "exercises": [20,19,18]
   }
 }
