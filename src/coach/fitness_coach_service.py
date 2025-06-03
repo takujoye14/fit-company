@@ -1,6 +1,10 @@
+import os
 from typing import List, Tuple
-from ..models_db import ExerciseModel, MuscleGroupModel, UserModel, exercise_muscle_groups, UserExerciseHistory
-from ..database import db_session
+
+from flask import app
+import requests
+from .models_db import ExerciseModel, MuscleGroupModel, exercise_muscle_groups
+from .database import db_session
 import random
 from time import time
 import datetime
@@ -44,27 +48,22 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
     db = db_session()
     
     try:
-        # Get the most recent workout date for this user
-        last_workout_date = db.query(func.max(UserExerciseHistory.date)).filter(
-            UserExerciseHistory.user_email == user_email
-        ).scalar()
-        # Get exercises from the last workout if it exists
-        last_exercises = []
-        if last_workout_date:
-            last_exercises = db.query(UserExerciseHistory.exercise_id).filter(
-                UserExerciseHistory.user_email == user_email,
-                UserExerciseHistory.date == last_workout_date
-            ).all()
-            last_exercise_ids = [ex[0] for ex in last_exercises]
-            
-            # Get all exercises except those used in the last workout
-            available_exercises = db.query(ExerciseModel).filter(
-                ~ExerciseModel.id.in_(last_exercise_ids)
-            ).all()
+
+        monolith_url = os.getenv("MONOLITH_URL")
+        headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
+        history_response = requests.get(f"{monolith_url}/users/{user_email}/workouts/last", headers=headers)
+        history_response.raise_for_status()
+        history_exercises = history_response.json()
+        print(history_exercises)
+        if len(history_exercises) > 0:
+            last_exercise_ids = [history_exercise["exercise_id"] for history_exercise in history_exercises]
         else:
-            # If no workout history, all exercises are available
-            available_exercises = db.query(ExerciseModel).all()
-        
+            last_exercise_ids = []
+
+        available_exercises = db.query(ExerciseModel).filter(
+            ~ExerciseModel.id.in_(last_exercise_ids)
+        ).all()
+
         # If we don't have enough exercises (excluding last workout's), include all exercises
         if len(available_exercises) < 6:
             available_exercises = db.query(ExerciseModel).all()
@@ -73,15 +72,7 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
         selected_exercises = random.sample(available_exercises, 6) if len(available_exercises) >= 6 else available_exercises
         
         # Store today's exercises in history
-        today = datetime.date.today()
-        for exercise in selected_exercises:
-            history_entry = UserExerciseHistory(
-                user_email=user_email,
-                exercise_id=exercise.id,
-                date=today
-            )
-            db.add(history_entry)
-        db.commit()
+        # TODO: store today's exercises in history
         
         # For each exercise, get its muscle groups and whether they are primary
         result = []
@@ -99,7 +90,6 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
             
             muscle_groups = [(mg, is_primary) for mg, is_primary in stmt.all()]
             result.append((exercise, muscle_groups))
-        
         return result
     finally:
         db.close() 

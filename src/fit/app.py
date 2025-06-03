@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 from pydantic import ValidationError
 
+from .models_dto import UserSchema
+
 from .database import init_db, db_session
 from .models_db import UserModel
-from .models_dto import UserSchema
 from .services.user_service import create_user as create_user_service
-from .services.fitness_data_init import init_fitness_data
-from .blueprints import user_bp, auth_bp, coach_bp
+from .services.data_init import init_data
+from .blueprints import user_bp, auth_bp
 import os
 
 app = Flask(__name__)
@@ -14,7 +15,6 @@ app = Flask(__name__)
 # Register blueprints
 app.register_blueprint(user_bp, url_prefix='/')
 app.register_blueprint(auth_bp, url_prefix='/')
-app.register_blueprint(coach_bp, url_prefix='/fitness')
 
 BOOTSTRAP_KEY = os.environ.get("BOOTSTRAP_KEY", "bootstrap-secret-key")
 
@@ -58,7 +58,7 @@ def run_app():
     init_db()
     
     # Initialize fitness data
-    init_fitness_data()
+    init_data()
     
     app.run(host="0.0.0.0", port=5000, debug=True)
 

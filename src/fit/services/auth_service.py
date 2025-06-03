@@ -1,5 +1,6 @@
 import jwt
 import datetime
+import os
 from typing import Optional, Callable
 from functools import wraps
 from flask import request, jsonify, g
@@ -114,6 +115,28 @@ def jwt_required(f: Callable) -> Callable:
         
         # Store user email in Flask's g object for the view function to use
         g.user_email = payload.get("sub")
+            
+        return f(*args, **kwargs)
+    
+    return decorated_function 
+
+def api_key_required(f: Callable) -> Callable:
+    """
+    Decorator to require a valid API key in the X-API-Key header
+    The API key must match the FIT_API_KEY environment variable
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            return jsonify({"error": "X-API-Key header missing"}), 401
+        
+        expected_key = os.getenv('FIT_API_KEY')
+        if not expected_key:
+            return jsonify({"error": "API key not configured on server"}), 500
+            
+        if api_key != expected_key:
+            return jsonify({"error": "Invalid API key"}), 401
             
         return f(*args, **kwargs)
     

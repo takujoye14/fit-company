@@ -3,14 +3,14 @@ import psycopg2
 from sqlalchemy import text
 from ..database import engine
 
-def init_fitness_data():
+def init_data():
     """
     Initialize the fitness database with muscle groups and exercises
     from the SQL script file.
     """
     # Path to the SQL script file
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sql_file_path = os.path.join(script_dir, "db_init_scripts", "init_muscle_groups_exercises.sql")
+    sql_file_path = os.path.join(script_dir, "db_init_scripts", "init_tables.sql")
     
     try:
         # Read the SQL file
@@ -30,4 +30,4 @@ def init_fitness_data():
 
 if __name__ == "__main__":
     # This allows the script to be run directly
-    init_fitness_data() 
+    init_data() 
