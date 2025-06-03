@@ -21,59 +21,15 @@ class UserModel(Base):
     def __repr__(self):
         return f"<User(email='{self.email}', name='{self.name}', role='{self.role}')>"
 
-# Junction table for the many-to-many relationship between exercises and muscle groups
-exercise_muscle_groups = Table(
-    "exercise_muscle_groups",
-    Base.metadata,
-    Column("exercise_id", Integer, ForeignKey("exercises.id", ondelete="CASCADE"), primary_key=True),
-    Column("muscle_group_id", Integer, ForeignKey("muscle_groups.id", ondelete="CASCADE"), primary_key=True),
-    Column("is_primary", Boolean, default=False, nullable=False),
-)
-
-class MuscleGroupModel(Base):
-    __tablename__ = "muscle_groups"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
-    body_part = Column(String(50), nullable=False)
-    description = Column(Text)
-    
-    # Relationship to exercises
-    exercises = relationship(
-        "ExerciseModel", 
-        secondary=exercise_muscle_groups,
-        back_populates="muscle_groups"
-    )
-
-    def __repr__(self):
-        return f"<MuscleGroup(id={self.id}, name='{self.name}', body_part='{self.body_part}')>"
-
-class ExerciseModel(Base):
-    __tablename__ = "exercises"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
-    description = Column(Text)
-    difficulty = Column(Integer, nullable=False)
-    equipment = Column(String(100))
-    instructions = Column(Text)
-    
-    # Relationship to muscle groups
-    muscle_groups = relationship(
-        "MuscleGroupModel",
-        secondary=exercise_muscle_groups,
-        back_populates="exercises"
-    )
-
-    def __repr__(self):
-        return f"<Exercise(id={self.id}, name='{self.name}', difficulty={self.difficulty})>"
 
 class UserExerciseHistory(Base):
     __tablename__ = 'user_exercise_history'
     
     id = Column(Integer, primary_key=True)
     user_email = Column(String, ForeignKey('users.email'), nullable=False) 
-    exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=False)
+    exercise_id = Column(Integer, nullable=False)
     date = Column(Date, nullable=False, default=datetime.date.today)
-    
-    exercise = relationship("ExerciseModel") 
+    user = relationship("UserModel")
+
+    def __repr__(self):
+        return f"<UserExerciseHistory(id={self.id}, user_email='{self.user_email}', exercise_id='{self.exercise_id}', date='{self.date}')>"

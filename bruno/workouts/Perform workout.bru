@@ -1,0 +1,22 @@
+meta {
+  name: Perform workout
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{endpoint}}/users/jane.doe@mail.com/workouts/performed
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-API-Key: {{fit-api-key}}
+}
+
+body:json {
+  {
+    "email": "jane.doe@mail.com",
+    "exercises": [1,2,3,4,5,6,7,8,9,10]
+  }
+}

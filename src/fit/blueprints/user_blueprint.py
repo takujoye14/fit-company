@@ -1,16 +1,14 @@
 from flask import Blueprint, request, jsonify, g
 from pydantic import ValidationError
-from ..models_dto import UserSchema, UserProfileSchema
+from ..models_dto import UserSchema, UserProfileSchema, RegisterWorkoutSchema
 from ..services.user_service import (
     create_user as create_user_service,
     get_all_users as get_all_users_service,
     update_user_profile,
     get_user_profile
 )
-from ..services.fitness_service import get_last_workout_exercises
+from ..services.workout_service import get_last_workout_exercises, register_workout
 from ..services.auth_service import admin_required, api_key_required, jwt_required
-from ..models_db import UserModel
-from ..database import db_session
 import os
 
 user_bp = Blueprint('user', __name__)
@@ -79,16 +77,3 @@ def get_profile():
         
     except Exception as e:
         return jsonify({"error": "Error retrieving profile", "details": str(e)}), 500
-
-@user_bp.route("/users/<email>/workouts/last", methods=["GET"])
-@api_key_required
-def get_user_last_workout(email):
-    try:
-        exercises = get_last_workout_exercises(email)
-        if exercises is None:
-            return jsonify([]), 200
-            
-        return jsonify([exercise.model_dump() for exercise in exercises]), 200
-        
-    except Exception as e:
-        return jsonify({"error": "Error retrieving last workout", "details": str(e)}), 500 

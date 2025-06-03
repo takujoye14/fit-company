@@ -4,12 +4,18 @@ meta {
   seq: 5
 }
 
-get {
-  url: {{endpoint}}/users/jane.doe@mail.com/workouts/last
-  body: none
+post {
+  url: {{endpoint}}/workouts/last
+  body: json
   auth: inherit
 }
 
 headers {
   X-API-Key: {{fit-api-key}}
+}
+
+body:json {
+  {
+    "email":"jane.doe@mail.com"
+  }
 }

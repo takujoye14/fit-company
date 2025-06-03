@@ -1,14 +1,11 @@
 import os
 from typing import List, Tuple
 
-from flask import app
 import requests
 from .models_db import ExerciseModel, MuscleGroupModel, exercise_muscle_groups
 from .database import db_session
 import random
 from time import time
-import datetime
-from sqlalchemy import func
 
 def heavy_computation(duration_seconds: int = 3):
     """
@@ -31,6 +28,27 @@ def calculate_intensity(difficulty: int) -> float:
     # Convert difficulty (1-5) to intensity (0.0-1.0)
     return (difficulty - 1) / 4.0
 
+def get_last_workout_exercises(user_email: str) -> List[int]:
+    """
+    Get the last workout exercises for a user from the monolith.
+    """
+    monolith_url = os.getenv("MONOLITH_URL")
+    headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
+    history_response = requests.post(f"{monolith_url}/workouts/last", headers=headers, json={"email": user_email})
+    history_response.raise_for_status()
+    history_exercises = history_response.json()
+
+    return [history_exercise["id"] for history_exercise in history_exercises]
+
+def save_workout_exercises(user_email: str, exercise_ids: List[int]):
+    """
+    Save the workout exercises for a user to the monolith.
+    """
+    monolith_url = os.getenv("MONOLITH_URL")
+    headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
+    requests.post(f"{monolith_url}/workouts/register", headers=headers, json={"email": user_email, "exercises": exercise_ids})
+
+
 def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
     """
     Request a workout of the day (WOD).
@@ -49,16 +67,7 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
     
     try:
 
-        monolith_url = os.getenv("MONOLITH_URL")
-        headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
-        history_response = requests.get(f"{monolith_url}/users/{user_email}/workouts/last", headers=headers)
-        history_response.raise_for_status()
-        history_exercises = history_response.json()
-        print(history_exercises)
-        if len(history_exercises) > 0:
-            last_exercise_ids = [history_exercise["exercise_id"] for history_exercise in history_exercises]
-        else:
-            last_exercise_ids = []
+        last_exercise_ids = get_last_workout_exercises(user_email)
 
         available_exercises = db.query(ExerciseModel).filter(
             ~ExerciseModel.id.in_(last_exercise_ids)
@@ -72,7 +81,7 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
         selected_exercises = random.sample(available_exercises, 6) if len(available_exercises) >= 6 else available_exercises
         
         # Store today's exercises in history
-        # TODO: store today's exercises in history
+        save_workout_exercises(user_email, [exercise.id for exercise in selected_exercises])
         
         # For each exercise, get its muscle groups and whether they are primary
         result = []
@@ -92,4 +101,4 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
             result.append((exercise, muscle_groups))
         return result
     finally:
-        db.close() 
+        db.close()

@@ -85,9 +85,8 @@ class ExerciseUpdate(BaseModel):
 class MuscleGroupWithPrimary(MuscleGroup):
     is_primary: bool
 
-class Exercise(ExerciseBase):
+class ExerciseId(BaseModel):
     id: int
-    muscle_groups: List[MuscleGroupWithPrimary] = []
 
 class MuscleGroupImpact(BaseModel):
     id: int
@@ -108,3 +107,7 @@ class WodExerciseSchema(BaseModel):
 class WodResponseSchema(BaseModel):
     exercises: List[WodExerciseSchema]
     generated_at: datetime
+
+class RegisterWorkoutSchema(BaseModel):
+    email: str
+    exercises: List[int] = Field(..., description="List of exercise IDs performed in the workout")
