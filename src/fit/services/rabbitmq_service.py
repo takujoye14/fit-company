@@ -26,10 +26,10 @@ class RabbitMQService:
         self.connection = pika.BlockingConnection(parameters)
         self.channel = self.connection.channel()
 
-        # Declare the main queue with message TTL of 10 minutes (600000 ms)
+        # Declare the main queue with message TTL of 1 minute (60000 ms)
         # and max length of 100 messages
         arguments = {
-            "x-message-ttl": 600000,  # 10 minutes
+            "x-message-ttl": 60000,  # 1 minute
             "x-max-length": 100,
             "x-dead-letter-exchange": "dlx",  # Dead Letter Exchange
             "x-dead-letter-routing-key": f"{self.queue_name}-dead"
@@ -57,6 +57,10 @@ class RabbitMQService:
             if not self.connection or self.connection.is_closed:
                 self.connect()
 
+            if not validate_message(message):
+                print(f"Invalid message format: {message}")
+                return False
+
             self.channel.basic_publish(
                 exchange="",
                 routing_key=self.queue_name,
@@ -75,5 +79,18 @@ class RabbitMQService:
         if self.connection and not self.connection.is_closed:
             self.connection.close()
 
+# Message format validation
+def validate_message(message: Dict[str, Any]) -> bool:
+    """
+    Validate that the message has the correct format.
+    """
+    if not isinstance(message, dict):
+        return False
+    if "user_email" not in message:
+        return False
+    if not isinstance(message["user_email"], str):
+        return False
+    return True
+
 # Create a singleton instance
-rabbitmq_service = RabbitMQService() 
+rabbitmq_service = RabbitMQService()
