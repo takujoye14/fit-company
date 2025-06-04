@@ -5,7 +5,7 @@
 - Update your repository to track upstream
 
 ```
-git remote add upstream https://github.com/wayglem/fit-monolith.git
+git remote add upstream https://github.com/wayglem/fit-company.git
 git fetch upstream
 git checkout -b queue-communication upstream/queue-communication
 ```
