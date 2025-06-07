@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Tuple
 
@@ -6,6 +7,8 @@ from .models_db import ExerciseModel, MuscleGroupModel, exercise_muscle_groups
 from .database import db_session
 import random
 from time import time
+
+logger = logging.getLogger(__name__)
 
 def heavy_computation(duration_seconds: int = 3):
     """
@@ -61,7 +64,9 @@ def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleG
     Avoids repeating exercises from the user's last workout.
     """
     # Simulate heavy computation (AI model processing, complex calculations, etc.) for 1-5 seconds
+    logger.debug(f"running heavy computation to generate wod for user {user_email}")
     heavy_computation(random.randint(1, 5)) # DO NOT REMOVE THIS LINE
+    logger.debug(f"heavy computation completed for user {user_email}")
     
     db = db_session()
     

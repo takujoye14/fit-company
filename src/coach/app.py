@@ -15,8 +15,13 @@ from .fitness_service import get_exercises_by_muscle_group, get_all_exercises, g
 from .database import init_db
 from .fitness_data_init import init_fitness_data
 
-# Configure Flask logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 app = Flask(__name__)
 app.logger.setLevel(logging.DEBUG)
 
