@@ -1,3 +1,4 @@
+import logging
 from flask import Flask, request, jsonify
 from pydantic import ValidationError
 
@@ -10,7 +11,20 @@ from .services.data_init import init_data
 from .blueprints import user_bp, auth_bp, workout_bp
 import os
 
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Create Flask app
 app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+
+# Force stdout to be unbuffered
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 # Register blueprints
 app.register_blueprint(user_bp, url_prefix='/')
