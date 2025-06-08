@@ -49,10 +49,10 @@ def save_workout_exercises(user_email: str, exercise_ids: List[int]):
     """
     monolith_url = os.getenv("MONOLITH_URL")
     headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
-    requests.post(f"{monolith_url}/workouts/register", headers=headers, json={"email": user_email, "exercises": exercise_ids})
+    requests.post(f"{monolith_url}/workouts/", headers=headers, json={"email": user_email, "exercises": exercise_ids})
 
 
-def request_wod(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
+def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
     """
     Request a workout of the day (WOD).
     Returns a list of tuples containing:

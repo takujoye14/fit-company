@@ -8,7 +8,7 @@ import logging
 
 from .models_dto import MuscleGroupImpact, WodExerciseSchema, WodResponseSchema
 
-from .fitness_coach_service import calculate_intensity, request_wod
+from .fitness_coach_service import calculate_intensity, create_wod_for_user
 
 from .fitness_service import get_exercises_by_muscle_group, get_all_exercises, get_exercise_by_id
 
@@ -64,7 +64,7 @@ def get_exercise(exercise_id):
         return jsonify({"error": "Error retrieving exercise", "details": str(e)}), 500
 
 @app.route("/createWod", methods=["POST"])
-def create_wod():
+def create_wod_for_user():
     user_email = request.json.get("user_email")
     if not user_email:
         return jsonify({"error": "user_email is required"}), 400
@@ -72,7 +72,7 @@ def create_wod():
     try:
         # Fetch user last workout exercises from monolith
         # app.logger.debug(f"History exercises: {history_exercises}")
-        exercises_with_muscles = request_wod(user_email)
+        exercises_with_muscles = create_wod_for_user(user_email)
         wod_exercises = []
         for exercise, muscle_groups in exercises_with_muscles:
             # Create muscle group impact objects

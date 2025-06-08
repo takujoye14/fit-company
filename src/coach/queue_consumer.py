@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 from .queue_messages import CreateWodMessage
 
-from .fitness_coach_service import request_wod
+from .fitness_coach_service import create_wod_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class WodQueueConsumer:
             user_email = message.email
             
             try:
-                exercises_with_muscles = request_wod(user_email)
+                exercises_with_muscles = create_wod_for_user(user_email)
                 if not exercises_with_muscles or not exercises_with_muscles[0]:
                     raise ValueError("No exercises generated for WOD")
                     

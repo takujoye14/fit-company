@@ -7,7 +7,6 @@ from .models_dto import UserSchema
 from .database import init_db, db_session
 from .models_db import UserModel
 from .services.user_service import create_user as create_user_service
-from .services.data_init import init_data
 from .blueprints import user_bp, auth_bp, workout_bp
 import os
 
@@ -71,10 +70,7 @@ def run_app():
     """Entry point for the application script"""
     # Initialize the database before starting the app
     init_db()
-    
-    # Initialize fitness data
-    init_data()
-    
+
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 if __name__ == "__main__":

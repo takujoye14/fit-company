@@ -11,6 +11,7 @@ from ..services.user_service import (
 )
 from ..services.auth_service import admin_required, jwt_required
 from ..services.rabbitmq_service import rabbitmq_service
+from ..services.workout_service import get_most_recent_workout_exercises
 import os
 
 user_bp = Blueprint('user', __name__)
@@ -50,16 +51,32 @@ def generate_wods():
     try:
         # Get all users
         users = get_all_users_service()
-        current_app.logger.info(f"Generating WODs for {len(users)} users: {[user.email for user in users]}")
+        current_app.logger.info(f"Found {len(users)} total users")
         
-        # Queue a WOD generation job for each user
+        # Filter users who need a new workout
+        users_needing_workout = []
         for user in users:
+            # Check if user has any unperformed workout
+            unperformed_workout = get_most_recent_workout_exercises(user.email, performed=False)
+            if unperformed_workout is not None:
+                current_app.logger.debug(f"Skipping user {user.email} - has unperformed workout")
+                continue
+                
+            users_needing_workout.append(user)
+            current_app.logger.debug(f"User {user.email} has no unperformed workouts - will generate one")
+        
+        current_app.logger.info(f"Generating WODs for {len(users_needing_workout)} users who need new workouts")
+        
+        # Queue a WOD generation job for filtered users
+        for user in users_needing_workout:
             message = CreateWodMessage(email=user.email)
             rabbitmq_service.publish_message(message)
         
-        current_app.logger.info(f"Successfully queued WOD generation for {len(users)} users")
+        current_app.logger.info(f"Successfully queued WOD generation for {len(users_needing_workout)} users")
         return jsonify({
-            "message": f"Queued WOD generation for {len(users)} users",
+            "message": f"Queued WOD generation for {len(users_needing_workout)} users",
+            "total_users": len(users),
+            "users_needing_workout": len(users_needing_workout),
             "queue": "createWodQueue"
         }), 202
         
