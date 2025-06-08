@@ -1,7 +1,7 @@
 from flask import Blueprint, g, request, jsonify
 from pydantic import ValidationError
 from ..models_dto import  RegisterWorkoutSchema
-from ..services.workout_service import get_most_recent_workout_exercises, perform_workout, register_workout
+from ..services.workout_service import get_most_recent_workout_exercises, get_user_next_workout, perform_workout, register_workout
 from ..services.auth_service import  api_key_required, jwt_required
 
 workout_bp = Blueprint('workout', __name__)
@@ -19,7 +19,7 @@ def get_user_last_performed_workout():
         if exercises is None:
             return jsonify([]), 200
             
-        return jsonify([exercise.model_dump() for exercise in exercises]), 200
+        return jsonify(exercises.exercises), 200
         
     except Exception as e:
         return jsonify({"error": "Error retrieving last workout", "details": str(e)}), 500 
@@ -53,11 +53,11 @@ def perform_workout_api(workout_id: int):
 def get_next_workout_to_perform():
     try:
         user_email = g.user_email
-        exercises = get_most_recent_workout_exercises(user_email, performed=False)
+        exercises = get_user_next_workout(user_email)
         if exercises is None:
-            return jsonify([]), 200
-            
-        return jsonify([exercise.model_dump() for exercise in exercises]), 200
+            return jsonify({}), 200
+        
+        return exercises.model_dump_json(), 200
         
     except Exception as e:
         return jsonify({"error": "Error retrieving unperformed workout", "details": str(e)}), 500 

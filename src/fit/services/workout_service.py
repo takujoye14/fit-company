@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
+
+import requests
 from ..database import db_session
 from ..models_db import UserExerciseHistory, WorkoutModel
-from ..models_dto import ExerciseId
+from ..models_dto import ExerciseId, WodExerciseSchema, WorkoutExercisesList, WorkoutResponseSchema
 from sqlalchemy import func
+import os
 
 def register_workout(user_email: str, exercise_ids: List[int]):
     """
@@ -33,7 +36,36 @@ def register_workout(user_email: str, exercise_ids: List[int]):
     finally:
         db.close()
 
-def get_most_recent_workout_exercises(user_email: str, performed: bool) -> Optional[List[ExerciseId]]:
+def get_exercises_metadata(exercise_ids: List[int]) -> List[WodExerciseSchema]:
+    """
+    Get the metadata for a list of exercise IDs.
+    """
+    coach_url = os.getenv("COACH_URL")
+    history_response = requests.get(f"{coach_url}/exercises")
+    history_response.raise_for_status()
+    history_exercises = history_response.json()
+
+    filtered_exercises = []
+    for exercise in history_exercises:
+        if exercise['id'] in exercise_ids:
+            filtered_exercises.append(exercise)
+    return filtered_exercises
+
+
+def get_user_next_workout(user_email: str) -> Optional[WorkoutResponseSchema]:
+    """
+    Get the next workout for a user.
+    """
+    workout = get_most_recent_workout_exercises(user_email, performed=False)
+    if workout is None:
+        return None
+    exercises_populated = get_exercises_metadata(workout.exercises)
+    return WorkoutResponseSchema(
+        id=workout.workout_id,
+        exercises=exercises_populated
+    )
+
+def get_most_recent_workout_exercises(user_email: str, performed: bool) -> Optional[WorkoutExercisesList]:
     """
     Get the exercises from the user's most recent workout based on its performed status.
     
@@ -42,7 +74,7 @@ def get_most_recent_workout_exercises(user_email: str, performed: bool) -> Optio
         performed (bool): If True, returns the last performed workout. If False, returns the last unperformed workout.
     
     Returns:
-        Optional[List[ExerciseId]]: List of exercise IDs or None if no matching workout exists.
+        Optional[WorkoutResponseSchema]: Workout ID and list of exercise IDs or None if no matching workout exists.
     """
     db = db_session()
     try:
@@ -70,16 +102,14 @@ def get_most_recent_workout_exercises(user_email: str, performed: bool) -> Optio
             UserExerciseHistory.workout_id == last_workout.id
         ).all()
         
-        result = []
+        exercise_ids = []
         for exercise in exercises:
-            exercise_dto = ExerciseId.model_validate(
-                {
-                    "id": exercise.exercise_id,
-                }
-            )
-            result.append(exercise_dto)
+            exercise_ids.append(exercise.exercise_id)
             
-        return result
+        return WorkoutExercisesList(
+            workout_id=last_workout.id,
+            exercises=exercise_ids
+        )
     finally:
         db.close()
 

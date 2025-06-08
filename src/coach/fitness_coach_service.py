@@ -39,9 +39,7 @@ def get_last_workout_exercises(user_email: str) -> List[int]:
     headers = {"X-API-Key": os.getenv("FIT_API_KEY")}
     history_response = requests.post(f"{monolith_url}/workouts/last", headers=headers, json={"email": user_email})
     history_response.raise_for_status()
-    history_exercises = history_response.json()
-
-    return [history_exercise["id"] for history_exercise in history_exercises]
+    return history_response.json()
 
 def save_workout_exercises(user_email: str, exercise_ids: List[int]):
     """
