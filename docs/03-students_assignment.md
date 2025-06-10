@@ -27,56 +27,40 @@ sequenceDiagram
     participant User
     participant Monolith
     participant RabbitMQ
-    participant CoachService
     participant StatsService
 
-    Note over User,StatsService: Workout Creation Flow
-    User->>Monolith: Request Workout
-    Monolith->>CoachService: Request WOD Generation
-    CoachService-->>CoachService: Generate WOD
-    CoachService->>RabbitMQ: Publish WorkoutCreated Event
-    RabbitMQ->>StatsService: Consume WorkoutCreated Event
-    RabbitMQ->>Monolith: Consume WorkoutCreated Event
+    Note over User,StatsService: Workout Performance Flow
+    User->>Monolith: POST /workout/:id/perform
+    Monolith-->>Monolith: Update workout status
+    Monolith->>RabbitMQ: Publish WorkoutPerformed Event
+    RabbitMQ->>StatsService: Consume WorkoutPerformed Event
     StatsService-->>StatsService: Store workout stats
-    Monolith-->>Monolith: Save last workout
 
-    Note over User,StatsService: Error Handling
-    CoachService--xRabbitMQ: Failed Event (20% chance)
-    RabbitMQ-->>RabbitMQ: Retry (up to 3 times)
-    RabbitMQ-->>RabbitMQ: Move to Dead Letter Queue
-
-    Note over User,StatsService: Stats Retrieval
-    User->>StatsService: Request Dashboard
-    StatsService-->>User: Return Workout Statistics
 ```
 
 ## Step 1: Create a new service called stats service
 
 - Setup a new flask app in the `src/stats` folder
-- Create a docker compose file for the stats service
-- Use a mongo database to store the workout stats
+- Create a docker file and a docker compose file for the stats service and its database (postgres)
+
 - Define how you would store the workout stats in the database
 - Create a simple API endpoint to return the workout statistics
 
-## Step 2: Create a new queue called workoutCreatedQueue
+## Step 2: Create a new rabbitmq exchange called workout.performed
 
-- Create a new queue called workoutCreatedQueue
-- Define the message format
+- Create a new exchange called workout.performed of type fanout
+- Define the message format for the workout performed event
 
-## Step 3: Publish the workout created event
+## Step 3: Publish the workout performed event
 
-- When a user performs a workout, the coach service will publish an event to the workoutCreatedQueue
+- When a user performs a workout, the coach service will publish an event to the workout.performed exchange
 
 ## Step 4: Create a consumer in the stats service
 
-- Create a consumer in the stats service that will listen to the workoutCreatedQueue
-- The consumer should store the workout stats in the database
+- Create a consumer in the stats service that will subscribe to the workout.performed exchange
+- Define the database model to store the workout stats
+- Create a service to store the workout stats in the database
 
-## Step 5: Create a consumer in the monolith
-
-- Create a consumer in the monolith that will listen to the workoutCreatedQueue
-- The consumer should save the last workout in the database
-
-## Step 6: Create a simple API endpoint to return the workout statistics
+## Step 5: Create a simple API endpoint to return the workout statistics
 
 - Create a simple API endpoint to return the workout statistics
