@@ -19,6 +19,12 @@ services:
       - RABBITMQ_DEFAULT_PASS=docker
     networks:
       - fit
+    # entrypoint: ["flask", "run"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      monolith-db:
+        condition: service_healthy
 
   coach:
     build:
