@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
-from datetime import datetime
+from datetime import datetime, date
 
 # Muscle Group DTOs
 class MuscleGroupBase(BaseModel):
@@ -49,3 +49,8 @@ class WodExerciseSchema(BaseModel):
 class WodResponseSchema(BaseModel):
     exercises: List[WodExerciseSchema]
     generated_at: datetime
+
+class CreateWodMessage(BaseModel):
+    user_email: str
+    date: date
+    attempt: int = Field(default=0, ge=0, le=3)

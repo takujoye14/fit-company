@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
-from datetime import datetime
+from datetime import datetime, date
 
 # User-related DTOs
 class UserSchema(BaseModel):
@@ -111,3 +111,8 @@ class WodResponseSchema(BaseModel):
 class RegisterWorkoutSchema(BaseModel):
     email: str
     exercises: List[int] = Field(..., description="List of exercise IDs performed in the workout")
+
+class CreateWodMessage(BaseModel):
+    user_email: str
+    date: date
+    attempt: int = Field(default=0, ge=0, le=3)

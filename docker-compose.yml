@@ -91,9 +91,57 @@ services:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 5s
       timeout: 30s
-      retries: 5
+      retries: 12
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - fit
 
+  coach-consumer:
+    build:
+      context: .
+      dockerfile: coach.Dockerfile
+    command: ["python", "-m", "src.coach.wod_consumer"]
+    depends_on:
+      - rabbitmq
+      - coach-db
+      - monolith
+    volumes:
+      - ./src/coach:/app/src/coach
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=docker
+      - DATABASE_URL=postgresql://postgres:docker@coach-db:5432/coach-db
+      - MONOLITH_URL=http://monolith:5000
+      - FIT_API_KEY=some_very_secret_key
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    networks:
+      - fit
+    restart: on-failure
+
+  monolith-cron:
+    build:
+      context: .
+      dockerfile: monolith.Dockerfile
+    command: ["python", "/app/src/fit/cron_job.py"]
+    environment:
+      - MONOLITH_URL=http://monolith:5000
+      - FIT_API_KEY=some_very_secret_key
+    networks:
+      - fit
+    depends_on:
+      monolith:
+        condition: service_healthy
+
+    
+
+volumes:
+  rabbitmq_data:
+    driver: local
+
 networks:
   fit:
+    driver: bridge

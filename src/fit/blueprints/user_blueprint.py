@@ -10,6 +10,7 @@ from ..services.user_service import (
 from ..services.auth_service import admin_required, jwt_required
 from ..services.rabbitmq_service import rabbitmq_service
 import os
+from datetime import date
 
 user_bp = Blueprint('user', __name__)
 
@@ -43,17 +44,25 @@ def generate_wods():
     try:
         # Get all users
         users = get_all_users_service()
-        
+
+        today = date.today().isoformat()
+        success_count = 0
+
         # Queue a WOD generation job for each user
         for user in users:
-            message = {"email": user.email}
-            rabbitmq_service.publish_message(message)
-        
+            message = {
+                "user_email": user.email,
+                "date": today,
+                "attempt": 0
+            }
+            if rabbitmq_service.publish_message(message):
+                success_count += 1
+
         return jsonify({
-            "message": f"Queued WOD generation for {len(users)} users",
+            "message": f"Queued WOD generation for {success_count} users",
             "queue": "createWodQueue"
         }), 202
-        
+
     except Exception as e:
         return jsonify({
             "error": "Error queueing WOD generation",

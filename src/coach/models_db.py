@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Table, Text
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Table, Text, DateTime, Float
+from datetime import datetime
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -48,4 +49,13 @@ class ExerciseModel(Base):
 
     def __repr__(self):
         return f"<Exercise(id={self.id}, name='{self.name}', difficulty={self.difficulty})>"
+    
+class GeneratedWODModel(Base):
+    __tablename__ = "generated_wods"
 
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, nullable=False)
+    exercise_name = Column(String, nullable=False)
+    suggested_weight = Column(Float, nullable=False)
+    suggested_reps = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

@@ -6,18 +6,23 @@ WORKDIR /app
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 
-# Copy from the cache instead of linking since it's a mounted volume
-ENV UV_LINK_MODE=copy
-
+# Copy project files needed for uv sync
 COPY pyproject.toml uv.lock ./
 
-COPY main_monolith.py /app/main_monolith.py
-
+# Install dependencies
 RUN uv sync
 
+# Activate .venv globally
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Copy the entire application source code
+COPY src/fit/ /app/src/fit/
+COPY main_monolith.py /app/main_monolith.py
+COPY src/fit/cron_job.py /app/src/fit/cron_job.py
+
 ENV FLASK_ENV=development
-# ENV PYTHONPATH=/app/fit
 
 EXPOSE 5000
 
-CMD ["uv", "run", "main_monolith.py"] 
+CMD ["uv", "run", "main_monolith.py"]

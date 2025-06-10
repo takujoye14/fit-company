@@ -2,6 +2,7 @@ import os
 import pika
 import json
 from typing import Dict, Any
+from ..models_dto import CreateWodMessage
 
 class RabbitMQService:
     def __init__(self):
@@ -60,7 +61,8 @@ class RabbitMQService:
             if not validate_message(message):
                 print(f"Invalid message format: {message}")
                 return False
-
+            
+            print(f"Publishing message to {self.queue_name}:", message)
             self.channel.basic_publish(
                 exchange="",
                 routing_key=self.queue_name,
@@ -82,15 +84,14 @@ class RabbitMQService:
 # Message format validation
 def validate_message(message: Dict[str, Any]) -> bool:
     """
-    Validate that the message has the correct format.
+    Validate that the message has the correct format using Pydantic.
     """
-    if not isinstance(message, dict):
+    try:
+        CreateWodMessage(**message)
+        return True
+    except Exception as e:
+        print(f"Message validation error: {e}")
         return False
-    if "user_email" not in message:
-        return False
-    if not isinstance(message["user_email"], str):
-        return False
-    return True
-
+    
 # Create a singleton instance
 rabbitmq_service = RabbitMQService()

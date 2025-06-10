@@ -6,18 +6,27 @@ WORKDIR /app
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 
-# Copy from the cache instead of linking since it's a mounted volume
-ENV UV_LINK_MODE=copy
-
+# Copy project files needed for uv sync
 COPY pyproject.toml uv.lock ./
 
-COPY main_coach.py /app/main_coach.py
-
+# Install dependencies
 RUN uv sync
 
+# Activate .venv globally
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install curl and netcat-openbsd (for healthcheck / wait-for)
+RUN apt-get update && \
+    apt-get install -y curl netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the entire application source code
+COPY src/coach/ /app/src/coach/
+COPY main_coach.py /app/main_coach.py
+
 ENV FLASK_ENV=development
-# ENV PYTHONPATH=/app/fit
 
 EXPOSE 5000
 
-CMD ["uv", "run", "main_coach.py"] 
+CMD ["uv", "run", "main_coach.py"]
