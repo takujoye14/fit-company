@@ -2,9 +2,6 @@ from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 
-class CreateWodMessage(BaseModel):
-    email: str
-
 class WorkoutPerformedMessage(BaseModel):
     workout_id: int
     user_email: str

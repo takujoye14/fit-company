@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Any
 
 from ..queue_messages import CreateWodMessage
+from ..queue_messages import WorkoutPerformedMessage
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,30 @@ class RabbitMQService:
         except Exception as e:
             logger.error(f"Failed to publish message to RabbitMQ: {str(e)}", exc_info=True)
             return False
+        
+    def publish_workout_performed_event(self, message: WorkoutPerformedMessage) -> bool:
+        try:
+            self.ensure_connection()
+
+            message_data = message.model_dump()
+            logger.debug(f"Publishing to fanout exchange 'workout.performed': {message_data}")
+
+            self.channel.exchange_declare(exchange="workout.performed", exchange_type="fanout")
+
+            self.channel.basic_publish(
+                exchange="workout.performed",
+                routing_key="",  # Ignored in fanout
+                body=json.dumps(message_data),
+                properties=pika.BasicProperties(
+                    delivery_mode=2,  # persistent
+                )
+            )
+            logger.info(f"Published WorkoutPerformed event for user: {message_data['user_email']}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to publish WorkoutPerformed event: {str(e)}", exc_info=True)
+            return False
+
 
     def close(self):
         """Close the connection"""

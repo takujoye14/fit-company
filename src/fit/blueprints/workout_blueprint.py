@@ -61,3 +61,36 @@ def get_next_workout_to_perform():
         
     except Exception as e:
         return jsonify({"error": "Error retrieving unperformed workout", "details": str(e)}), 500 
+    
+@workout_bp.route("/workouts/<int:workout_id>/perform", methods=["POST"])
+def perform_workout(workout_id):
+    try:
+        data = request.get_json()
+        user_email = data.get("email")
+        exercise_ids = data.get("exercise_ids")
+
+        if not user_email or not exercise_ids:
+            return jsonify({"error": "Missing user_email or exercise_ids"}), 400
+
+        db = db_session()
+        workout = db.query(WorkoutModel).filter_by(id=workout_id).first()
+
+        if not workout:
+            return jsonify({"error": "Workout not found"}), 404
+
+        workout.performed_at = datetime.datetime.utcnow()
+        db.commit()
+
+        # Publish the event to RabbitMQ
+        event = WorkoutPerformedMessage(
+            workout_id=workout_id,
+            user_email=user_email,
+            performed_at=workout.performed_at,
+            exercise_ids=exercise_ids
+        )
+        rabbitmq_service.publish_workout_performed_event(event)
+
+        return jsonify({"message": "Workout marked as performed"}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Failed to mark workout as performed", "details": str(e)}), 500
