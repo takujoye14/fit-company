@@ -20,7 +20,6 @@ services:
       - RABBITMQ_DEFAULT_PASS=docker
     networks:
       - fit
-    # entrypoint: ["flask", "run"]
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -50,6 +49,33 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+
+  billing:
+    build:
+      context: ./src/billing
+    container_name: billing
+    ports:
+      - "5003:5003"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@billing-db:5432/billing
+    depends_on:
+      - billing-db
+    networks:
+      - fit
+
+  billing-db:
+    image: postgres:15
+    container_name: billing-db
+    restart: always
+    environment:
+      - POSTGRES_DB=billing
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - billing-db-data:/var/lib/postgresql/data
+      - ./src/billing/db_init_scripts/init_billing.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - fit
 
   monolith-db:
     image: postgres:latest
@@ -90,8 +116,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "12104:5672" # AMQP protocol port
-      - "12105:15672" # Management interface port
+      - "12104:5672"
+      - "12105:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=rabbit
       - RABBITMQ_DEFAULT_PASS=docker
@@ -102,6 +128,9 @@ services:
       retries: 5
     networks:
       - fit
+
+volumes:
+  billing-db-data:
 
 networks:
   fit:

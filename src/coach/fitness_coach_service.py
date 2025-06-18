@@ -105,3 +105,11 @@ def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple
         return result
     finally:
         db.close()
+
+def is_premium(user_id: str) -> bool:
+    try:
+        res = requests.get(f"http://billing:5003/api/billing/status/{user_id}")
+        return res.ok and res.json().get("is_premium", False)
+    except Exception as e:
+        print("Billing unavailable:", e)
+        return False
