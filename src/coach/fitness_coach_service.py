@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 import requests
 from .models_db import ExerciseModel, MuscleGroupModel, exercise_muscle_groups
+from .premium_status_consumer import premium_users
 from .database import db_session
 import random
 from time import time
@@ -81,7 +82,8 @@ def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple
             available_exercises = db.query(ExerciseModel).all()
         
         # Select 6 random exercises
-        selected_exercises = random.sample(available_exercises, 6) if len(available_exercises) >= 6 else available_exercises
+        num_exercises = 9 if user_email in premium_users else 6
+        selected_exercises = random.sample(available_exercises, min(num_exercises, len(available_exercises)))
         
         # Store today's exercises in history
         save_workout_exercises(user_email, [exercise.id for exercise in selected_exercises])

@@ -51,3 +51,18 @@ class UserExerciseHistory(Base):
 
     def __repr__(self):
         return f"<UserExerciseHistory(id={self.id}, workout_id='{self.workout_id}', exercise_id='{self.exercise_id}')>"
+    
+class ExercisePerformanceModel(Base):
+    __tablename__ = 'exercise_performance'
+
+    id = Column(Integer, primary_key=True)
+    workout_id = Column(Integer, ForeignKey('workouts.id'), nullable=False)
+    exercise_id = Column(Integer, nullable=False)
+    reps = Column(Integer, nullable=True)
+    weight = Column(Float, nullable=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+    workout = relationship("WorkoutModel")
+
+    def __repr__(self):
+        return f"<ExercisePerformance(id={self.id}, workout_id={self.workout_id}, exercise_id={self.exercise_id}, reps={self.reps}, weight={self.weight})>"
