@@ -1,0 +1,17 @@
+meta {
+  name: lookup user id
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{endpoint}}/users/lookup
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "jane.doe@mail.com"
+  }
+}

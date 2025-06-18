@@ -145,5 +145,42 @@ services:
     networks:
       - fit
 
+  billing:
+    build:
+      context: .
+      dockerfile: billing.Dockerfile
+    ports:
+      - "12108:5000"
+    volumes:
+      - ./src/billing:/app/src/billing
+      - ./main_billing.py:/app/main_billing.py
+    environment:
+      - DATABASE_URL=postgresql://postgres:docker@billing-db:5432/billing
+      - JWT_SECRET=secret
+      - MONOLITH_URL=http://monolith:5000
+    depends_on:
+      billing-db:
+        condition: service_healthy
+    networks:
+      - fit
+
+  billing-db:
+    image: postgres:latest
+    ports:
+      - "12109:5434"
+    command: postgres -c max_connections=200
+    user: postgres
+    environment:
+      - POSTGRES_DB=billing
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "billing"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+    networks:
+      - fit
+
 networks:
   fit:

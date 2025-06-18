@@ -1,0 +1,11 @@
+meta {
+  name: request user stats
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:12106/stats/jane.doe@mail.com
+  body: none
+  auth: inherit
+}

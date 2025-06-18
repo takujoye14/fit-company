@@ -7,6 +7,7 @@ class UserSchema(BaseModel):
     email: str
     name: str
     role: str
+
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str

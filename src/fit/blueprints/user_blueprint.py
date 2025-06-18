@@ -134,3 +134,25 @@ def get_profile():
     except Exception as e:
         current_app.logger.error(f"Error retrieving profile for user {g.user_email}: {str(e)}")
         return jsonify({"error": "Error retrieving profile", "details": str(e)}), 500
+    
+
+@user_bp.route("/users/lookup", methods=["POST"])
+def lookup_user():
+    try:
+        data = request.get_json()
+        email = data.get("email")
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        user = get_all_users_service()
+        matched_user = next((u for u in user if u.email == email), None)
+
+        if not matched_user:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify({"id": matched_user.id, "email": matched_user.email}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error during user lookup: {str(e)}")
+        return jsonify({"error": "Error during user lookup", "details": str(e)}), 500
