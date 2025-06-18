@@ -102,20 +102,21 @@ class RabbitMQService:
         try:
             self.ensure_connection()
 
-            message_data = message.model_dump()
-            logger.debug(f"Publishing to fanout exchange 'workout.performed': {message_data}")
+            body = message.model_dump_json()  # ✅ Handles datetime automatically
+
+            logger.debug(f"Publishing to fanout exchange 'workout.performed': {body}")
 
             self.channel.exchange_declare(exchange="workout.performed", exchange_type="fanout")
 
             self.channel.basic_publish(
                 exchange="workout.performed",
                 routing_key="",  # Ignored in fanout
-                body=json.dumps(message_data),
+                body=body,
                 properties=pika.BasicProperties(
                     delivery_mode=2,  # persistent
                 )
             )
-            logger.info(f"Published WorkoutPerformed event for user: {message_data['user_email']}")
+            logger.info(f"Published WorkoutPerformed event for user: {message.user_email}")
             return True
         except Exception as e:
             logger.error(f"Failed to publish WorkoutPerformed event: {str(e)}", exc_info=True)

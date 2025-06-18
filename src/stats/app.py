@@ -1,8 +1,15 @@
 from flask import Flask, jsonify
 from src.stats.models_db import init_db, SessionLocal, WorkoutStat
 import os
+import logging
 
 app = Flask(__name__)
+
+app.logger.setLevel(logging.DEBUG)
+
+# Force stdout to be unbuffered
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 @app.route("/health")
 def health():
@@ -31,12 +38,7 @@ def get_user_stats(user_email):
 
 def run_app():
     init_db()
-    if os.getenv("RUN_CONSUMER") == "1":
-        from src.stats.consumer import StatsConsumer
-        consumer = StatsConsumer()
-        consumer.start()
-    else:
-        app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=True)
 
 if __name__ == "__main__":
     run_app()

@@ -64,7 +64,7 @@ def get_exercise(exercise_id):
         return jsonify({"error": "Error retrieving exercise", "details": str(e)}), 500
 
 @app.route("/createWod", methods=["POST"])
-def create_wod_for_user():
+def create_wod_for_user_ctrl():
     user_email = request.json.get("user_email")
     if not user_email:
         return jsonify({"error": "user_email is required"}), 400

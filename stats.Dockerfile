@@ -1,11 +1,22 @@
-FROM python:3.11-slim
+# Use a Python image with uv pre-installed
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 WORKDIR /app
 
-COPY ./src/stats /app/src/stats
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-RUN pip install flask psycopg2-binary pika sqlalchemy
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-ENV PYTHONPATH=/app
+COPY pyproject.toml uv.lock ./
 
-CMD ["python", "src/stats/app.py"]
+RUN uv sync
+
+COPY src/stats /app/src/stats
+COPY main_stats.py /app/main_stats.py
+
+ENV FLASK_ENV=development
+EXPOSE 5002
+
+CMD ["uv", "run", "main_stats.py"]

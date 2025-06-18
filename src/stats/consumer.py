@@ -1,27 +1,25 @@
-import os
 import pika
-import json
+import os
 import logging
-from datetime import datetime
-
-from .models_db import WorkoutStat, SessionLocal
+import json
 from pydantic import ValidationError
 from .queue_messages import WorkoutPerformedMessage
+from .models_db import SessionLocal, WorkoutStat
 
 logger = logging.getLogger(__name__)
-logging.getLogger("pika").setLevel(logging.WARNING)
+logging.getLogger("pika").setLevel(logging.DEBUG)
 
 class StatsConsumer:
     def __init__(self):
+        self.queue_name = "workoutCompleted"
         self.connection = None
         self.channel = None
-        self.exchange = "workout.performed"
-        self.queue_name = "stats.workout.performed"
+        self.connect()
 
     def connect(self):
         credentials = pika.PlainCredentials(
-            username=os.getenv("RABBITMQ_DEFAULT_USER", "rabbit"),
-            password=os.getenv("RABBITMQ_DEFAULT_PASS", "docker")
+            os.getenv("RABBITMQ_DEFAULT_USER", "rabbit"),
+            os.getenv("RABBITMQ_DEFAULT_PASS", "docker")
         )
         parameters = pika.ConnectionParameters(
             host=os.getenv("RABBITMQ_HOST", "rabbitmq"),
@@ -33,27 +31,22 @@ class StatsConsumer:
         self.connection = pika.BlockingConnection(parameters)
         self.channel = self.connection.channel()
 
-        self.channel.exchange_declare(exchange=self.exchange, exchange_type="fanout")
+        # 1. Declare the fanout exchange
+        self.channel.exchange_declare(exchange="workout.performed", exchange_type="fanout")
 
-        result = self.channel.queue_declare(queue='', exclusive=True)
-        queue_name = result.method.queue
+        # 2. Declare the queue (durable)
+        self.channel.queue_declare(queue=self.queue_name, durable=True)
 
-        self.channel.queue_bind(exchange=self.exchange, queue=queue_name)
-        self.queue_name = queue_name
+        # 3. Bind the queue to the exchange
+        self.channel.queue_bind(exchange="workout.performed", queue=self.queue_name)
 
-        logger.info(f"Connected and bound to exchange '{self.exchange}'")
+    
 
-        self.channel.basic_consume(
-            queue=self.queue_name,
-            on_message_callback=self.process_message,
-            auto_ack=False
-        )
-
-    def process_message(self, ch, method, properties, body):
+    def callback(self, ch, method, properties, body):
         try:
-            logger.debug(f"Received message: {body}")
-            data = json.loads(body)
-            message = WorkoutPerformedMessage(**data)
+            logger.info(f"Message received: {body.decode()}")
+            print(f"Message received: {body.decode()}")
+            message = WorkoutPerformedMessage.model_validate_json(body.decode())
 
             db = SessionLocal()
             stat = WorkoutStat(
@@ -67,16 +60,21 @@ class StatsConsumer:
             db.close()
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
-            logger.info(f"Stored workout stats for user {message.user_email}")
-
-        except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(f"Invalid message: {e}")
+            print("saved to db")
+        except ValidationError as e:
+            logger.error(f"Validation failed: {str(e)}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         except Exception as e:
-            logger.error(f"Error processing message: {e}")
+            logger.error(f"Unhandled error: {str(e)}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    def start(self):
-        self.connect()
-        logger.info("Starting stats consumer...")
+
+    def start_consuming(self):
+        self.channel.basic_qos(prefetch_count=1)
+        self.channel.basic_consume(
+            queue=self.queue_name,
+            on_message_callback=self.callback
+        )
+        print(f"Started consuming from queue '{self.queue_name}'")
+        logger.info(f"Started consuming from queue '{self.queue_name}'")
         self.channel.start_consuming()

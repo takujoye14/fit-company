@@ -1,4 +1,5 @@
 version: "3.7"
+
 services:
   monolith:
     build:
@@ -20,7 +21,6 @@ services:
       - RABBITMQ_DEFAULT_PASS=docker
     networks:
       - fit
-    # entrypoint: ["flask", "run"]
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -88,17 +88,18 @@ services:
       - fit
 
   rabbitmq:
+    user: rabbitmq
     image: rabbitmq:3.12.10-management
     ports:
-      - "12104:5672" # AMQP protocol port
-      - "12105:15672" # Management interface port
+      - "12104:5672"
+      - "12105:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=rabbit
       - RABBITMQ_DEFAULT_PASS=docker
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 5s
-      timeout: 30s
+      timeout: 60s
       retries: 5
     networks:
       - fit
@@ -111,8 +112,11 @@ services:
       - "12106:5002"
     volumes:
       - ./src/stats:/app/src/stats
+      - ./main_stats.py:/app/main_stats.py
     depends_on:
       stats-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: on-failure
     environment:
@@ -120,7 +124,6 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_DEFAULT_USER=rabbit
       - RABBITMQ_DEFAULT_PASS=docker
-      - RUN_CONSUMER=0
     networks:
       - fit
 
@@ -142,23 +145,5 @@ services:
     networks:
       - fit
 
-  stats-consumer:
-    build:
-      context: .
-      dockerfile: stats.Dockerfile
-    depends_on:
-      - rabbitmq
-      - stats-db
-    volumes:
-      - ./src/stats:/app/src/stats
-    environment:
-      - RUN_CONSUMER=1
-      - DATABASE_URL=postgresql://postgres:docker@stats-db:5432/stats-db
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_DEFAULT_USER=rabbit
-      - RABBITMQ_DEFAULT_PASS=docker
-    networks:
-      - fit
-      
 networks:
   fit:
