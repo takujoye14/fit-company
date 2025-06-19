@@ -53,33 +53,28 @@ def save_workout_exercises(user_email: str, exercise_ids: List[int]):
 def create_wod_for_user(user_email: str, is_premium: bool = False) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
     """
     Request a workout of the day (WOD).
-    Returns a list of tuples containing:
-    - The exercise
-    - A list of tuples containing:
-      - The muscle group
-      - Whether it's a primary muscle group
-
     Premium users get 9 exercises, regular users get 6.
     Avoids repeating exercises from the user's last workout.
     """
-    logger.debug(f"running heavy computation to generate WOD for user {user_email}")
+    logger.debug(f"Running heavy computation to generate WOD for user {user_email}")
     heavy_computation(random.randint(1, 5))  # DO NOT REMOVE THIS LINE
-    logger.debug(f"heavy computation completed for user {user_email}")
+    logger.debug(f"Heavy computation completed for user {user_email}")
 
     db = db_session()
     try:
         last_exercise_ids = get_last_workout_exercises(user_email)
+        logger.info(f"[Coach] Last workout exercise IDs for {user_email}: {last_exercise_ids}")
 
         available_exercises = db.query(ExerciseModel).filter(
             ~ExerciseModel.id.in_(last_exercise_ids)
         ).all()
 
-        # If not enough unique exercises, include all
         if len(available_exercises) < 6:
+            logger.warning(f"[Coach] Not enough unique exercises for {user_email}, falling back to all exercises")
             available_exercises = db.query(ExerciseModel).all()
 
-        # Determine how many exercises to generate
         exercise_count = 9 if is_premium else 6
+        logger.info(f"[Coach] Generating {exercise_count} exercises for user {user_email} (premium: {is_premium})")
 
         selected_exercises = (
             random.sample(available_exercises, exercise_count)
@@ -87,10 +82,12 @@ def create_wod_for_user(user_email: str, is_premium: bool = False) -> List[Tuple
             else available_exercises
         )
 
-        # Store today's exercises in the monolith
-        save_workout_exercises(user_email, [exercise.id for exercise in selected_exercises])
+        logger.info(f"[Coach] Selected exercise IDs for {user_email}: {[ex.id for ex in selected_exercises]}")
 
-        # Build the result with muscle group metadata
+        # Store today's exercises in monolith
+        save_workout_exercises(user_email, [exercise.id for exercise in selected_exercises])
+        logger.info(f"[Coach] Saved workout for user {user_email}")
+
         result = []
         for exercise in selected_exercises:
             stmt = db.query(
