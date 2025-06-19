@@ -87,7 +87,7 @@ class WodQueueConsumer:
             user_email = message.email
             
             try:
-                exercises_with_muscles = create_wod_for_user(user_email)
+                exercises_with_muscles = create_wod_for_user(user_email, is_premium=message.is_premium)
                 if not exercises_with_muscles or not exercises_with_muscles[0]:
                     raise ValueError("No exercises generated for WOD")
                     

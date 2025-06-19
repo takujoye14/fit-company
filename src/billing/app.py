@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 import jwt
 import os
-
+from .models_db import init_db
 from .billing_service import mark_user_premium, is_user_premium, notify_monolith
 from .database import get_user_by_email
+from .billing_service import cancel_user_subscription
 
 SECRET_KEY = os.getenv("JWT_SECRET", "fit-secret-key")
 
@@ -31,7 +32,7 @@ def subscribe():
         mark_user_premium(email)
 
         # Notify monolith
-        notify_monolith(email)
+        notify_monolith(email, is_premium=True)
 
         return jsonify({
             "message": "Payment simulated. User upgraded to premium.",
@@ -71,7 +72,41 @@ def check_premium():
         return jsonify({"error": "Token expired"}), 401
     except jwt.InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
+    
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route("/api/billing/cancel", methods=["POST"])
+def cancel_subscription():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid Authorization header"}), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        email = decoded.get("sub")
+
+        if not email:
+            return jsonify({"error": "Invalid token: missing email"}), 400
+
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        cancelled = cancel_user_subscription(email)
+
+        if cancelled:
+            notify_monolith(email, is_premium=False)
+
+
+        return jsonify({
+            "email": email,
+            "message": "Subscription cancelled" if cancelled else "User was not premium"
+        }), 200
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid token"}), 401
+    except Exception as e:
+        return jsonify({"error": "Failed to cancel subscription", "details": str(e)}), 500

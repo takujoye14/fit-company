@@ -50,7 +50,7 @@ def save_workout_exercises(user_email: str, exercise_ids: List[int]):
     requests.post(f"{monolith_url}/workouts/", headers=headers, json={"email": user_email, "exercises": exercise_ids})
 
 
-def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
+def create_wod_for_user(user_email: str, is_premium: bool = False) -> List[Tuple[ExerciseModel, List[Tuple[MuscleGroupModel, bool]]]]:
     """
     Request a workout of the day (WOD).
     Returns a list of tuples containing:
@@ -58,38 +58,41 @@ def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple
     - A list of tuples containing:
       - The muscle group
       - Whether it's a primary muscle group
-    
+
+    Premium users get 9 exercises, regular users get 6.
     Avoids repeating exercises from the user's last workout.
     """
-    # Simulate heavy computation (AI model processing, complex calculations, etc.) for 1-5 seconds
-    logger.debug(f"running heavy computation to generate wod for user {user_email}")
-    heavy_computation(random.randint(1, 5)) # DO NOT REMOVE THIS LINE
+    logger.debug(f"running heavy computation to generate WOD for user {user_email}")
+    heavy_computation(random.randint(1, 5))  # DO NOT REMOVE THIS LINE
     logger.debug(f"heavy computation completed for user {user_email}")
-    
-    db = db_session()
-    
-    try:
 
+    db = db_session()
+    try:
         last_exercise_ids = get_last_workout_exercises(user_email)
 
         available_exercises = db.query(ExerciseModel).filter(
             ~ExerciseModel.id.in_(last_exercise_ids)
         ).all()
 
-        # If we don't have enough exercises (excluding last workout's), include all exercises
+        # If not enough unique exercises, include all
         if len(available_exercises) < 6:
             available_exercises = db.query(ExerciseModel).all()
-        
-        # Select 6 random exercises
-        selected_exercises = random.sample(available_exercises, 6) if len(available_exercises) >= 6 else available_exercises
-        
-        # Store today's exercises in history
+
+        # Determine how many exercises to generate
+        exercise_count = 9 if is_premium else 6
+
+        selected_exercises = (
+            random.sample(available_exercises, exercise_count)
+            if len(available_exercises) >= exercise_count
+            else available_exercises
+        )
+
+        # Store today's exercises in the monolith
         save_workout_exercises(user_email, [exercise.id for exercise in selected_exercises])
-        
-        # For each exercise, get its muscle groups and whether they are primary
+
+        # Build the result with muscle group metadata
         result = []
         for exercise in selected_exercises:
-            # Get the junction table information for this exercise
             stmt = db.query(
                 MuscleGroupModel,
                 exercise_muscle_groups.c.is_primary
@@ -99,9 +102,11 @@ def create_wod_for_user(user_email: str) -> List[Tuple[ExerciseModel, List[Tuple
             ).filter(
                 exercise_muscle_groups.c.exercise_id == exercise.id
             )
-            
+
             muscle_groups = [(mg, is_primary) for mg, is_primary in stmt.all()]
             result.append((exercise, muscle_groups))
+
         return result
+
     finally:
         db.close()

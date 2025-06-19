@@ -1,0 +1,17 @@
+meta {
+  name: test
+  type: http
+  seq: 11
+}
+
+post {
+  url: http://localhost:12101/users/lookup
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "jane.doe@mail.com"
+  }
+}

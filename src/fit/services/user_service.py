@@ -67,7 +67,8 @@ def get_all_users() -> List[UserSchema]:
             UserSchema(
                 email=db_user.email,
                 name=db_user.name,
-                role=db_user.role
+                role=db_user.role,
+                is_premium=db_user.is_premium
             )
             for db_user in db_users
         ]

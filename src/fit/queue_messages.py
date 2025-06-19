@@ -4,7 +4,8 @@ from datetime import datetime
 
 class CreateWodMessage(BaseModel):
     email: str
-
+    is_premium: bool
+    
 class WorkoutPerformedMessage(BaseModel):
     workout_id: int
     user_email: str

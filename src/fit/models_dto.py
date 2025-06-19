@@ -7,6 +7,7 @@ class UserSchema(BaseModel):
     email: str
     name: str
     role: str
+    is_premium: Optional[bool] = False 
 
 class TokenSchema(BaseModel):
     access_token: str

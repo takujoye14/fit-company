@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from pydantic import ValidationError
-
+from ..database import db_session
+from ..models_db import UserModel
 from ..queue_messages import CreateWodMessage
 from ..models_dto import UserSchema, UserProfileSchema
 from ..services.user_service import (
@@ -69,8 +70,9 @@ def generate_wods():
         
         # Queue a WOD generation job for filtered users
         for user in users_needing_workout:
-            message = CreateWodMessage(email=user.email)
+            message = CreateWodMessage(email=user.email, is_premium=user.is_premium)
             rabbitmq_service.publish_message(message)
+
         
         current_app.logger.info(f"Successfully queued WOD generation for {len(users_needing_workout)} users")
         return jsonify({
@@ -151,8 +153,34 @@ def lookup_user():
         if not matched_user:
             return jsonify({"error": "User not found"}), 404
 
-        return jsonify({"id": matched_user.id, "email": matched_user.email}), 200
+        return jsonify({"email": matched_user.email}), 200
 
     except Exception as e:
         current_app.logger.error(f"Error during user lookup: {str(e)}")
         return jsonify({"error": "Error during user lookup", "details": str(e)}), 500
+    
+@user_bp.route("/users/set-premium", methods=["POST"])
+def set_user_premium():
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        is_premium = data.get("is_premium")
+
+        if not email or is_premium is None:
+            return jsonify({"error": "Email and is_premium are required"}), 400
+
+        db = db_session()
+        user = db.query(UserModel).filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        user.is_premium = is_premium
+        db.commit()
+
+        current_app.logger.info(f"Set user {email} premium={is_premium}")
+        return jsonify({"message": f"User {email} premium set to {is_premium}"}), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting premium for user: {str(e)}")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
